@@ -74,14 +74,16 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 	/** Wordmark height in the header; its width follows from the artwork's aspect. */
 	private static final int LOGO_HEIGHT = 18;
 	private static final int RAIL_WIDTH = 132;
+	private int railWidth = RAIL_WIDTH;
 
 	/** Author credit, bottom-left of the ClickGUI window. */
 	private static final String WATERMARK = "by Skylxne";
-	private static final int DETAIL_WIDTH = 252;
-	private static final int ROW_HEIGHT = 30;
-	private static final int RAIL_ROW_HEIGHT = 32;
+	private static final int DETAIL_WIDTH = 280;
+	private int detailWidth = DETAIL_WIDTH;
+	private static final int ROW_HEIGHT = 34;
+	private static final int RAIL_ROW_HEIGHT = 36;
 	private static final int PADDING = 18;
-	private static final int SETTING_GAP = 4;
+	private static final int SETTING_GAP = 8;
 	private static final int SCROLLBAR_WIDTH = 3;
 	/** How far the window travels on open, in pixels. */
 	private static final int ENTRY_RISE = 14;
@@ -139,8 +141,18 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 
 	@Override
 	protected void init() {
-		windowWidth = Math.min(MAX_WIDTH, width - MARGIN * 2);
-		windowHeight = Math.min(MAX_HEIGHT, height - MARGIN * 2);
+		int horizontalMargin = Math.min(MARGIN, Math.max(8, (width - 320) / 2));
+		int verticalMargin = Math.min(MARGIN, Math.max(8, (height - 260) / 2));
+		windowWidth = Math.max(1, Math.min(MAX_WIDTH, width - horizontalMargin * 2));
+		windowHeight = Math.max(1, Math.min(MAX_HEIGHT, height - verticalMargin * 2));
+		int innerWidth = Math.max(0, windowWidth - PADDING * 2);
+		railWidth = Math.min(RAIL_WIDTH, Math.max(76, innerWidth / 4));
+		detailWidth = Math.min(DETAIL_WIDTH, Math.max(144, innerWidth / 3));
+		int minimumListWidth = 128;
+		int currentListWidth = windowWidth - railWidth - detailWidth - PADDING * 2;
+		if (currentListWidth < minimumListWidth) {
+			detailWidth = Math.max(120, detailWidth - (minimumListWidth - currentListWidth));
+		}
 		windowX = (width - windowWidth) / 2;
 		windowY = (height - windowHeight) / 2;
 
@@ -152,7 +164,10 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		settingsButtonX = accentSwatchX - 8 - ICON_BUTTON_SIZE;
 		configsButtonX = settingsButtonX - 8 - configsButtonWidth;
 		hudButtonX = configsButtonX - 8 - hudButtonWidth;
-		searchBar.setPosition(windowX + RAIL_WIDTH + PADDING, windowY + (HEADER_HEIGHT - SearchBar.HEIGHT) / 2);
+		int searchLeft = windowX + railWidth + PADDING;
+		int searchRight = hudButtonX - 12;
+		searchBar.setWidth(Math.max(0, Math.min(SearchBar.MAX_WIDTH, searchRight - searchLeft)));
+		searchBar.setPosition(searchLeft, windowY + (HEADER_HEIGHT - SearchBar.HEIGHT) / 2);
 
 		entry.snapTo(0);
 		entry.set(1);
@@ -229,7 +244,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 	/** The search field, drawn flat here rather than through {@link SearchBar#render} so it matches this window. */
 	private void renderSearch(Renderer2D renderer, int y, double progress) {
 		int x = searchBar.x();
-		int fieldWidth = SearchBar.WIDTH;
+		int fieldWidth = searchBar.width();
 		renderer.roundedRect(x, y, fieldWidth, SearchBar.HEIGHT, SearchBar.HEIGHT / 2, fade(theme.settingsBackground(), progress));
 		if (searchBar.isFocused()) {
 			renderer.roundedRectOutline(x, y, fieldWidth, SearchBar.HEIGHT, SearchBar.HEIGHT / 2, 1f, fade(theme.accent(), progress));
@@ -289,27 +304,27 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		railIndicator.set(categoryIndex(selectedCategory) * (double) RAIL_ROW_HEIGHT);
 		int indicatorY = railTop + (int) Math.round(railIndicator.get());
 		if (searchBar.query().isEmpty()) {
-			renderer.roundedRect(railX - 6, indicatorY, RAIL_WIDTH - PADDING, RAIL_ROW_HEIGHT - 4, 8,
+			renderer.roundedRect(railX - 6, indicatorY, railWidth - PADDING, RAIL_ROW_HEIGHT - 4, 8,
 					fade(ColorUtil.scaleAlpha(theme.accent(), 0.16), progress));
 			renderer.roundedRect(railX - 6, indicatorY + 6, 2, RAIL_ROW_HEIGHT - 16, 1, fade(theme.accent(), progress));
 		}
 
 		for (int i = 0; i < categories.length; i++) {
 			int rowY = railTop + i * RAIL_ROW_HEIGHT;
-			boolean hovered = mouseX >= railX - 6 && mouseX < railX + RAIL_WIDTH - PADDING - 6
+			boolean hovered = mouseX >= railX - 6 && mouseX < railX + railWidth - PADDING - 6
 					&& mouseY >= rowY && mouseY < rowY + RAIL_ROW_HEIGHT - 4;
 			boolean active = categories[i] == selectedCategory && searchBar.query().isEmpty();
 			int color = active ? theme.textPrimary() : hovered ? theme.textPrimary() : theme.textSecondary();
 			renderer.text(font, categories[i].displayName(), railX + 6, rowY + (RAIL_ROW_HEIGHT - 4 - font.lineHeight) / 2, fade(color, progress));
 		}
 
-		renderer.fill(wx + RAIL_WIDTH, wy + HEADER_HEIGHT + 8, wx + RAIL_WIDTH + 1, wy + windowHeight - 8, fade(theme.divider(), progress));
+		renderer.fill(wx + railWidth, wy + HEADER_HEIGHT + 8, wx + railWidth + 1, wy + windowHeight - 8, fade(theme.divider(), progress));
 	}
 
 	private void renderList(Renderer2D renderer, int wx, int wy, int mouseX, int mouseY, float partialTick, double progress) {
-		int listX = wx + RAIL_WIDTH + PADDING;
+		int listX = wx + railWidth + PADDING;
 		int listTop = wy + HEADER_HEIGHT + PADDING - 6;
-		int listWidth = windowWidth - RAIL_WIDTH - DETAIL_WIDTH - PADDING * 2;
+		int listWidth = Math.max(0, windowWidth - railWidth - detailWidth - PADDING * 2);
 		int listBottom = wy + windowHeight - PADDING;
 		List<Module> modules = visibleModules();
 
@@ -328,8 +343,8 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		if (modules.isEmpty()) {
 			renderer.text(font, "Nothing matches", listX + 4, listTop + 6, fade(theme.textSecondary(), progress));
 		}
-		renderer.fill(wx + windowWidth - DETAIL_WIDTH - PADDING, wy + HEADER_HEIGHT + 8,
-				wx + windowWidth - DETAIL_WIDTH - PADDING + 1, wy + windowHeight - 8, fade(theme.divider(), progress));
+		renderer.fill(wx + windowWidth - detailWidth - PADDING, wy + HEADER_HEIGHT + 8,
+				wx + windowWidth - detailWidth - PADDING + 1, wy + windowHeight - 8, fade(theme.divider(), progress));
 	}
 
 	private void renderModuleRow(Renderer2D renderer, Module module, int x, int y, int rowWidth, int mouseX, int mouseY, double progress, String query) {
@@ -369,7 +384,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 	}
 
 	private void renderDetail(Renderer2D renderer, int wx, int wy, int mouseX, int mouseY, float partialTick, double progress) {
-		int detailX = wx + windowWidth - DETAIL_WIDTH;
+		int detailX = wx + windowWidth - detailWidth;
 		int detailTop = wy + HEADER_HEIGHT + PADDING - 6;
 		int detailBottom = wy + windowHeight - PADDING;
 		double fade = detailFade.get() * progress;
@@ -381,10 +396,10 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 
 		renderer.text(font, selectedModule.name(), detailX, detailTop, fade(theme.textPrimary(), fade));
 		int descriptionBottom = drawWrapped(renderer, selectedModule.description(), detailX, detailTop + 14,
-				DETAIL_WIDTH - PADDING, fade(theme.textSecondary(), fade));
+				detailWidth - PADDING, fade(theme.textSecondary(), fade));
 
 		int settingsTop = descriptionBottom + 10;
-		renderer.fill(detailX, settingsTop - 6, detailX + DETAIL_WIDTH - PADDING, settingsTop - 5, fade(theme.divider(), fade));
+		renderer.fill(detailX, settingsTop - 6, detailX + detailWidth - PADDING, settingsTop - 5, fade(theme.divider(), fade));
 
 		List<SettingWidget> visible = detailWidgets.stream().filter(w -> w.setting().isVisible()).toList();
 		int contentHeight = 0;
@@ -395,10 +410,10 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		int maxScroll = Math.max(0, contentHeight - viewport);
 		detailScroll = Math.max(0, Math.min(detailScroll, maxScroll));
 
-		renderer.pushScissor(detailX, settingsTop, detailX + DETAIL_WIDTH - PADDING + 2, detailBottom);
+		renderer.pushScissor(detailX, settingsTop, detailX + detailWidth - PADDING + 2, detailBottom);
 		int cursor = settingsTop - (int) Math.round(detailScroll);
 		for (SettingWidget widget : visible) {
-			widget.setBounds(detailX, cursor, DETAIL_WIDTH - PADDING - (maxScroll > 0 ? SCROLLBAR_WIDTH + 6 : 0));
+			widget.setBounds(detailX, cursor, detailWidth - PADDING - (maxScroll > 0 ? SCROLLBAR_WIDTH + 6 : 0));
 			widget.render(renderer, font, mouseX, mouseY, partialTick);
 			cursor += widget.height() + SETTING_GAP;
 		}
@@ -412,7 +427,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 			int trackHeight = viewport - 4;
 			int thumbHeight = Math.max(16, (int) Math.round(trackHeight * (double) viewport / contentHeight));
 			int thumbY = settingsTop + 2 + (int) Math.round((trackHeight - thumbHeight) * (detailScroll / maxScroll));
-			renderer.roundedRect(detailX + DETAIL_WIDTH - PADDING - SCROLLBAR_WIDTH, thumbY, SCROLLBAR_WIDTH, thumbHeight,
+			renderer.roundedRect(detailX + detailWidth - PADDING - SCROLLBAR_WIDTH, thumbY, SCROLLBAR_WIDTH, thumbHeight,
 					SCROLLBAR_WIDTH / 2, fade(theme.trackOff(), fade));
 		}
 	}
@@ -551,7 +566,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		int railX = windowX + PADDING;
 		int railTop = wy + HEADER_HEIGHT + PADDING - 6;
 		Category[] categories = Category.values();
-		if (mx >= railX - 6 && mx < railX + RAIL_WIDTH - PADDING - 6) {
+		if (mx >= railX - 6 && mx < railX + railWidth - PADDING - 6) {
 			int index = (int) ((my - railTop) / RAIL_ROW_HEIGHT);
 			if (my >= railTop && index >= 0 && index < categories.length) {
 				selectedCategory = categories[index];
@@ -574,7 +589,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		// Module list
 		int listX = windowX + RAIL_WIDTH + PADDING;
 		int listTop = wy + HEADER_HEIGHT + PADDING - 6;
-		int listWidth = windowWidth - RAIL_WIDTH - DETAIL_WIDTH - PADDING * 2;
+		int listWidth = Math.max(0, windowWidth - railWidth - detailWidth - PADDING * 2);
 		int listBottom = wy + windowHeight - PADDING;
 		if (mx >= listX - 6 && mx < listX + listWidth && my >= listTop && my < listBottom) {
 			int index = (int) ((my - listTop + listScroll) / ROW_HEIGHT);
@@ -625,7 +640,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 				return true;
 			}
 		}
-		int detailX = windowX + windowWidth - DETAIL_WIDTH;
+		int detailX = windowX + windowWidth - detailWidth;
 		if (mouseX >= detailX) {
 			detailScroll = Math.max(0, detailScroll - scrollY * 18);
 			return true;
