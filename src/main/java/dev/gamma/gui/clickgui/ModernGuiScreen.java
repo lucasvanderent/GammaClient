@@ -587,7 +587,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		}
 
 		// Module list
-		int listX = windowX + RAIL_WIDTH + PADDING;
+		int listX = windowX + railWidth + PADDING;
 		int listTop = wy + HEADER_HEIGHT + PADDING - 6;
 		int listWidth = Math.max(0, windowWidth - railWidth - detailWidth - PADDING * 2);
 		int listBottom = wy + windowHeight - PADDING;
