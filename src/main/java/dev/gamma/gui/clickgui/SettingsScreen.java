@@ -68,6 +68,7 @@ public final class SettingsScreen extends GammaScreen implements ColorPickerHost
 	private static final int SECTION_GAP = 16;
 	private static final int TITLE_HEIGHT = 20;
 	private static final int SCROLLBAR_WIDTH = 3;
+	private static final double SCROLL_STEP = 42.0;
 	private static final int ENTRY_RISE = 14;
 	private static final int PICKER_GAP = 8;
 	private static final int SWITCH_WIDTH = 24;
@@ -327,7 +328,7 @@ public final class SettingsScreen extends GammaScreen implements ColorPickerHost
 		if (anyWidget(widget -> widget.setting().isVisible() && widget.mouseScrolled(mouseX, mouseY, scrollX, scrollY))) {
 			return true;
 		}
-		scroll = Math.max(0, scroll - scrollY * 18);
+		scroll = Math.max(0, scroll - scrollY * SCROLL_STEP);
 		return true;
 	}
 
