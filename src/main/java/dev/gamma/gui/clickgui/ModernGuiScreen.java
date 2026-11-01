@@ -85,6 +85,7 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 	private static final int PADDING = 18;
 	private static final int SETTING_GAP = 8;
 	private static final int SCROLLBAR_WIDTH = 3;
+	private static final double SCROLL_STEP = 42.0;
 	/** How far the window travels on open, in pixels. */
 	private static final int ENTRY_RISE = 14;
 	private static final int PICKER_GAP = 8;
@@ -540,20 +541,21 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		searchBar.mouseClicked(event);
 
 		int buttonY = wy + (HEADER_HEIGHT - 20) / 2;
-		if (my >= buttonY && my < buttonY + 20) {
-			if (mx >= hudButtonX && mx < hudButtonX + hudButtonWidth) {
+		// Give the compact header controls a forgiving hit target without changing their appearance.
+		if (my >= buttonY - 5 && my < buttonY + 25) {
+			if (mx >= hudButtonX - 4 && mx < hudButtonX + hudButtonWidth + 4) {
 				Minecraft.getInstance().gui.setScreen(new HudEditorScreen(hudManager));
 				return true;
 			}
-			if (mx >= configsButtonX && mx < configsButtonX + configsButtonWidth) {
+			if (mx >= configsButtonX - 4 && mx < configsButtonX + configsButtonWidth + 4) {
 				Minecraft.getInstance().gui.setScreen(new ConfigsScreen(configManager, registry, theme, this));
 				return true;
 			}
-			if (mx >= settingsButtonX && mx < settingsButtonX + ICON_BUTTON_SIZE) {
+			if (mx >= settingsButtonX - 5 && mx < settingsButtonX + ICON_BUTTON_SIZE + 5) {
 				Minecraft.getInstance().gui.setScreen(new SettingsScreen(settings, registry, theme, this));
 				return true;
 			}
-			if (mx >= accentSwatchX && mx < accentSwatchX + accentSwatchSize) {
+			if (mx >= accentSwatchX - 4 && mx < accentSwatchX + accentSwatchSize + 4) {
 				activePopup = new ColorPickerPopup(theme.accent(), color -> {
 					theme.setAccent(color);
 					guiConfig.setAccent(color);
@@ -642,10 +644,10 @@ public final class ModernGuiScreen extends GammaScreen implements ColorPickerHos
 		}
 		int detailX = windowX + windowWidth - detailWidth;
 		if (mouseX >= detailX) {
-			detailScroll = Math.max(0, detailScroll - scrollY * 18);
+			detailScroll = Math.max(0, detailScroll - scrollY * SCROLL_STEP);
 			return true;
 		}
-		listScroll = Math.max(0, listScroll - scrollY * 18);
+		listScroll = Math.max(0, listScroll - scrollY * SCROLL_STEP);
 		return true;
 	}
 
